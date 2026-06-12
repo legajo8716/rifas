@@ -1,0 +1,349 @@
+<!--
+  CENTRAL DE RIFAS
+  ----------------
+  1) Pega tu configuracion de Firebase en el objeto firebaseConfig de abajo.
+  2) Sube este archivo como index.html a tu repositorio de GitHub.
+  3) Activa GitHub Pages. Listo.
+-->
+<style>
+  :root{
+    --bg:#0f172a; --panel:#ffffff; --soft:#f1f5f9; --line:#e2e8f0;
+    --ink:#0f172a; --muted:#64748b; --brand:#4f46e5; --brand-d:#4338ca;
+    --ok:#16a34a; --ok-soft:#dcfce7; --bad:#dc2626; --bad-soft:#fee2e2;
+    --warn:#b45309; --warn-soft:#fef3c7;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--soft);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:18px 16px 60px;}
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+  .logo{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+  .logo span{color:var(--brand);}
+  .grow{flex:1;}
+  button{font:inherit;cursor:pointer;border:none;border-radius:10px;}
+  .btn{background:var(--brand);color:#fff;padding:10px 16px;font-weight:600;
+    transition:.15s;}
+  .btn:hover{background:var(--brand-d);}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .btn.ghost:hover{background:var(--soft);}
+  .btn.sm{padding:7px 12px;font-size:14px;}
+  .btn.danger{background:#fff;color:var(--bad);border:1px solid var(--bad-soft);}
+  .btn.danger:hover{background:var(--bad-soft);}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:18px;margin-bottom:16px;}
+  .card h2{margin:0 0 14px;font-size:17px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font:inherit;background:#fff;color:var(--ink);}
+  input:focus{outline:2px solid var(--brand);outline-offset:0;border-color:var(--brand);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .row>div{flex:1;min-width:120px;}
+  .rifa-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+  .rifa-item{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;display:flex;flex-direction:column;gap:8px;}
+  .rifa-item .name{font-weight:700;font-size:16px;}
+  .rifa-item .meta{font-size:13px;color:var(--muted);}
+  .pill{display:inline-block;background:var(--soft);border-radius:999px;
+    padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .stat .n{font-size:22px;font-weight:800;}
+  .stat .l{font-size:12px;color:var(--muted);font-weight:600;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px;}
+  .cell{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);
+    background:var(--ok-soft);color:#166534;font-weight:700;font-size:15px;
+    display:flex;align-items:center;justify-content:center;transition:.12s;position:relative;}
+  .cell:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08);}
+  .cell.sold{background:var(--bad-soft);color:var(--bad);text-decoration:line-through;
+    text-decoration-thickness:2px;}
+  .cell .buyer{position:absolute;bottom:2px;left:0;right:0;font-size:8px;font-weight:600;
+    text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 3px;opacity:.85;}
+  .muted{color:var(--muted);font-size:14px;}
+  .center{text-align:center;}
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;
+    align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .overlay.on{display:flex;}
+  .modal{background:#fff;border-radius:16px;padding:22px;max-width:380px;width:100%;}
+  .modal h3{margin:0 0 6px;}
+  .modal p{margin:0 0 16px;color:var(--muted);font-size:14px;}
+  .modal .acts{display:flex;gap:10px;margin-top:18px;}
+  .modal .acts .btn,.modal .acts .btn.ghost{flex:1;text-align:center;}
+  .note{background:var(--warn-soft);border:1px solid #fde68a;color:var(--warn);
+    border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px;}
+  .setup ol{padding-left:20px;line-height:1.7;}
+  .setup code{background:var(--soft);padding:2px 6px;border-radius:6px;font-size:13px;}
+  .setup pre{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:12px;
+    overflow:auto;font-size:12.5px;line-height:1.5;}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:#0f172a;color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;
+    opacity:0;transition:.25s;pointer-events:none;z-index:60;}
+  .toast.on{opacity:1;}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo">Central de <span>Rifas</span></div>
+    <div class="grow"></div>
+    <button class="btn ghost sm" id="homeBtn" style="display:none">← Volver</button>
+  </header>
+  <div id="root"></div>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== 1) PEGA TU CONFIG DE FIREBASE ACA ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAHELT3lnqab9IHA8XcKsh6Iv-epA7lKQ0",
+  authDomain: "rifa-e8cca.firebaseapp.com",
+  projectId: "rifa-e8cca",
+  storageBucket: "rifa-e8cca.firebasestorage.app",
+  messagingSenderId: "675940449723",
+  appId: "1:675940449723:web:76eea71646656fb2c0589e",
+  measurementId: "G-14DB784KSG"
+};
+
+/* =============================================== */
+
+const root = document.getElementById('root');
+const homeBtn = document.getElementById('homeBtn');
+const overlay = document.getElementById('overlay');
+const modal = document.getElementById('modal');
+const toastEl = document.getElementById('toast');
+
+let db, F;                  // db + funciones de firestore
+let unsubList = null, unsubRifa = null;
+const esc = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = n => '$' + Number(n||0).toLocaleString('es-AR');
+
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('on');
+  setTimeout(()=>toastEl.classList.remove('on'),1800); }
+function closeModal(){ overlay.classList.remove('on'); modal.innerHTML=''; }
+overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
+
+const configOk = () => firebaseConfig.apiKey && firebaseConfig.apiKey !== 'PEGAR_ACA';
+
+/* ---------- Arranque ---------- */
+async function start(){
+  if(!configOk()){ renderSetup(); return; }
+  try{
+    const appMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    F = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app = appMod.initializeApp(firebaseConfig);
+    db = F.getFirestore(app);
+  }catch(e){
+    root.innerHTML = `<div class="card"><h2>No se pudo conectar</h2>
+      <p class="muted">Esta app necesita ejecutarse desde un servidor web (tu GitHub Pages),
+      no desde la vista previa. Subila a GitHub y abrila desde ahi. Detalle: ${esc(e.message)}</p></div>`;
+    return;
+  }
+  window.addEventListener('hashchange', route);
+  route();
+}
+
+function route(){
+  const m = location.hash.match(/rifa=([A-Za-z0-9_-]+)/);
+  if(unsubList){ unsubList(); unsubList=null; }
+  if(unsubRifa){ unsubRifa(); unsubRifa=null; }
+  if(m){ homeBtn.style.display=''; renderRifa(m[1]); }
+  else { homeBtn.style.display='none'; renderHome(); }
+}
+homeBtn.onclick = ()=>{ location.hash=''; };
+
+/* ---------- Home: lista + crear ---------- */
+function renderHome(){
+  root.innerHTML = `
+    <div class="card">
+      <h2>Crear una rifa nueva</h2>
+      <div class="row">
+        <div style="flex:2"><label>Nombre</label>
+          <input id="f_nombre" placeholder="Ej. Rifa del asado del club"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Desde N°</label><input id="f_desde" type="number" value="1"></div>
+        <div><label>Hasta N°</label><input id="f_hasta" type="number" value="100"></div>
+        <div><label>Precio por número (opcional)</label><input id="f_precio" type="number" placeholder="0"></div>
+      </div>
+      <div style="margin-top:16px"><button class="btn" id="crearBtn">Crear rifa</button></div>
+    </div>
+    <h2 style="font-size:17px;margin:8px 2px 12px">Tus rifas</h2>
+    <div id="lista"><p class="muted">Cargando…</p></div>`;
+
+  document.getElementById('crearBtn').onclick = crearRifa;
+
+  const q = F.query(F.collection(db,'rifas'), F.orderBy('creada','desc'));
+  const lista = document.getElementById('lista');
+  unsubList = F.onSnapshot(q, snap=>{
+    if(snap.empty){ lista.innerHTML='<p class="muted">Todavía no hay rifas. Creá la primera arriba.</p>'; return; }
+    let html='<div class="rifa-list">';
+    snap.forEach(d=>{
+      const r=d.data(); const total=(r.hasta-r.desde+1);
+      const vend=r.vendidos?Object.keys(r.vendidos).length:0;
+      html+=`<div class="rifa-item">
+        <div class="name">${esc(r.nombre)}</div>
+        <div class="meta">N° ${r.desde} al ${r.hasta} · ${r.precio?money(r.precio)+' c/u':'sin precio'}</div>
+        <div><span class="pill">${vend}/${total} vendidos</span></div>
+        <button class="btn sm" onclick="location.hash='rifa=${d.id}'">Abrir →</button>
+      </div>`;
+    });
+    lista.innerHTML = html+'</div>';
+  }, err=>{ lista.innerHTML=`<div class="note">Error al leer: ${esc(err.message)}. Revisá las reglas de Firestore.</div>`; });
+}
+
+async function crearRifa(){
+  const nombre=document.getElementById('f_nombre').value.trim();
+  const desde=parseInt(document.getElementById('f_desde').value,10);
+  const hasta=parseInt(document.getElementById('f_hasta').value,10);
+  const precio=parseFloat(document.getElementById('f_precio').value)||0;
+  if(!nombre) return toast('Poné un nombre');
+  if(isNaN(desde)||isNaN(hasta)||hasta<desde) return toast('Revisá el rango de números');
+  if(hasta-desde>4999) return toast('Máximo 5000 números por rifa');
+  try{
+    const ref=await F.addDoc(F.collection(db,'rifas'),
+      {nombre,desde,hasta,precio,vendidos:{},creada:F.serverTimestamp()});
+    location.hash='rifa='+ref.id;
+  }catch(e){ toast('No se pudo crear: '+e.message); }
+}
+
+/* ---------- Vista de una rifa ---------- */
+let curId=null, curData=null;
+function renderRifa(id){
+  curId=id;
+  root.innerHTML='<p class="muted">Cargando rifa…</p>';
+  unsubRifa = F.onSnapshot(F.doc(db,'rifas',id), d=>{
+    if(!d.exists()){ root.innerHTML='<div class="card"><h2>Rifa no encontrada</h2><p class="muted">Puede que se haya eliminado.</p></div>'; return; }
+    curData=d.data();
+    if(!root.querySelector('#grid')) paintRifa(); else refreshRifa();
+  }, err=>{ root.innerHTML=`<div class="note">Error: ${esc(err.message)}</div>`; });
+}
+
+function paintRifa(){
+  const r=curData; const total=r.hasta-r.desde+1;
+  let cells='';
+  for(let n=r.desde;n<=r.hasta;n++) cells+=`<button class="cell" data-n="${n}">${n}</button>`;
+  root.innerHTML=`
+    <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:20px;font-weight:800" id="r_nombre">${esc(r.nombre)}</div>
+        <div class="muted">N° ${r.desde} al ${r.hasta}${r.precio?' · '+money(r.precio)+' c/u':''}</div>
+      </div>
+      <button class="btn ghost sm" id="shareBtn">🔗 Compartir</button>
+      <button class="btn danger sm" id="delBtn">Eliminar</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="note">Tocá un número verde para marcarlo como vendido. Tocá uno tachado para liberarlo.</div>
+    <div class="grid" id="grid">${cells}</div>`;
+  document.getElementById('shareBtn').onclick=share;
+  document.getElementById('delBtn').onclick=delRifa;
+  document.getElementById('grid').addEventListener('click',e=>{
+    const c=e.target.closest('.cell'); if(c) onCell(parseInt(c.dataset.n,10));
+  });
+  refreshRifa();
+}
+
+function refreshRifa(){
+  const r=curData; const v=r.vendidos||{}; const total=r.hasta-r.desde+1;
+  const vend=Object.keys(v).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="n">${vend}</div><div class="l">Vendidos</div></div>
+    <div class="stat"><div class="n">${total-vend}</div><div class="l">Disponibles</div></div>
+    <div class="stat"><div class="n">${total}</div><div class="l">Total</div></div>
+    ${r.precio?`<div class="stat"><div class="n">${money(vend*r.precio)}</div><div class="l">Recaudado</div></div>`:''}`;
+  document.querySelectorAll('#grid .cell').forEach(c=>{
+    const n=c.dataset.n; const sold=v[n];
+    if(sold){ c.classList.add('sold');
+      c.innerHTML=`${n}${sold.comprador?`<span class="buyer">${esc(sold.comprador)}</span>`:''}`; }
+    else { c.classList.remove('sold'); c.textContent=n; }
+  });
+}
+
+function onCell(n){
+  const sold=(curData.vendidos||{})[n];
+  if(sold) liberarModal(n,sold); else venderModal(n);
+}
+
+function venderModal(n){
+  modal.innerHTML=`<h3>Vender N° ${n}</h3>
+    <p>Anotá el comprador (opcional).</p>
+    <label>Comprador</label>
+    <input id="m_comprador" placeholder="Nombre (opcional)">
+    <div class="acts">
+      <button class="btn ghost" id="m_cancel">Cancelar</button>
+      <button class="btn" id="m_ok">Marcar vendido</button>
+    </div>`;
+  overlay.classList.add('on');
+  const inp=document.getElementById('m_comprador'); inp.focus();
+  document.getElementById('m_cancel').onclick=closeModal;
+  const go=async()=>{
+    try{ await F.updateDoc(F.doc(db,'rifas',curId),
+      {['vendidos.'+n]:{comprador:inp.value.trim(),fecha:Date.now()}});
+      closeModal(); }catch(e){ toast('Error: '+e.message); }
+  };
+  document.getElementById('m_ok').onclick=go;
+  inp.onkeydown=e=>{ if(e.key==='Enter') go(); };
+}
+
+function liberarModal(n,sold){
+  modal.innerHTML=`<h3>N° ${n} vendido</h3>
+    <p>${sold.comprador?'Comprador: <b>'+esc(sold.comprador)+'</b>':'Sin comprador anotado.'}</p>
+    <div class="acts">
+      <button class="btn ghost" id="m_cancel">Cerrar</button>
+      <button class="btn danger" id="m_free">Liberar número</button>
+    </div>`;
+  overlay.classList.add('on');
+  document.getElementById('m_cancel').onclick=closeModal;
+  document.getElementById('m_free').onclick=async()=>{
+    try{ await F.updateDoc(F.doc(db,'rifas',curId),{['vendidos.'+n]:F.deleteField()});
+      closeModal(); }catch(e){ toast('Error: '+e.message); }
+  };
+}
+
+function share(){
+  const url=location.origin+location.pathname+'#rifa='+curId;
+  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>toast('Link copiado ✓')); }
+  else { prompt('Copiá el link:',url); }
+}
+
+function delRifa(){
+  modal.innerHTML=`<h3>Eliminar rifa</h3>
+    <p>Se borra toda la rifa y sus ventas. No se puede deshacer.</p>
+    <div class="acts">
+      <button class="btn ghost" id="m_cancel">Cancelar</button>
+      <button class="btn danger" id="m_del">Eliminar</button>
+    </div>`;
+  overlay.classList.add('on');
+  document.getElementById('m_cancel').onclick=closeModal;
+  document.getElementById('m_del').onclick=async()=>{
+    try{ await F.deleteDoc(F.doc(db,'rifas',curId)); closeModal(); location.hash=''; }
+    catch(e){ toast('Error: '+e.message); }
+  };
+}
+
+/* ---------- Pantalla de configuración ---------- */
+function renderSetup(){
+  homeBtn.style.display='none';
+  root.innerHTML=`<div class="card setup">
+    <h2>Falta conectar Firebase</h2>
+    <p class="muted">Hacé esto una sola vez. Tarda ~5 minutos.</p>
+    <ol>
+      <li>Entrá a <code>console.firebase.google.com</code> y creá un proyecto (gratis, sin tarjeta).</li>
+      <li>En <b>Build → Firestore Database</b>, creá la base.</li>
+      <li>En <b>Configuración del proyecto → Tus apps</b>, agregá una app <b>Web</b> y copiá el objeto <code>firebaseConfig</code>.</li>
+      <li>Pegalo en este archivo, reemplazando el bloque <code>PEGAR_ACA</code>.</li>
+      <li>En <b>Firestore → Reglas</b>, pegá esto y publicá:</li>
+    </ol>
+    <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rifas/{id} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+    <div class="note">Estas reglas dejan la rifa abierta a cualquiera con el link (lo que necesitás para que todos tachen). No guardes datos sensibles.</div>
+  </div>`;
+}
+
+start();
+</script>
