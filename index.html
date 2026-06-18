@@ -1,9 +1,8 @@
 <!--
   CENTRAL DE RIFAS
   ----------------
-  1) Pega tu configuracion de Firebase en el objeto firebaseConfig de abajo.
-  2) Sube este archivo como index.html a tu repositorio de GitHub.
-  3) Activa GitHub Pages. Listo.
+  Tu config de Firebase ya esta pegada abajo.
+  Subi este archivo como index.html a tu repositorio de GitHub y activa Pages.
 -->
 <style>
   :root{
@@ -93,7 +92,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ====== 1) PEGA TU CONFIG DE FIREBASE ACA ====== */
+/* ====== CONFIG DE FIREBASE ====== */
 const firebaseConfig = {
   apiKey: "AIzaSyAHELT3lnqab9IHA8XcKsh6Iv-epA7lKQ0",
   authDomain: "rifa-e8cca.firebaseapp.com",
@@ -103,8 +102,7 @@ const firebaseConfig = {
   appId: "1:675940449723:web:76eea71646656fb2c0589e",
   measurementId: "G-14DB784KSG"
 };
-
-/* =============================================== */
+/* ================================= */
 
 const root = document.getElementById('root');
 const homeBtn = document.getElementById('homeBtn');
@@ -116,6 +114,8 @@ let db, F;                  // db + funciones de firestore
 let unsubList = null, unsubRifa = null;
 const esc = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = n => '$' + Number(n||0).toLocaleString('es-AR');
+/* Rellena con ceros a la izquierda segun cuantas cifras tiene el numero mayor (max) */
+const padTo = (n, max) => String(n).padStart(String(Math.max(0, max||0)).length, '0');
 
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('on');
   setTimeout(()=>toastEl.classList.remove('on'),1800); }
@@ -131,8 +131,8 @@ async function start(){
     const appMod = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     F = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const app = appMod.initializeApp(firebaseConfig);
-    // Fuerza "long polling": necesario detras de proxies/firewalls corporativos
-    // que rompen la conexion de streaming por defecto de Firestore.
+    // Fuerza "long polling": ayuda detras de proxies/firewalls que rompen
+    // la conexion de streaming por defecto de Firestore.
     db = F.initializeFirestore(app, { experimentalForceLongPolling: true });
   }catch(e){
     root.innerHTML = `<div class="card"><h2>No se pudo conectar</h2>
@@ -163,8 +163,8 @@ function renderHome(){
           <input id="f_nombre" placeholder="Ej. Rifa del asado del club"></div>
       </div>
       <div class="row" style="margin-top:12px">
-        <div><label>Desde N°</label><input id="f_desde" type="number" value="1"></div>
-        <div><label>Hasta N°</label><input id="f_hasta" type="number" value="100"></div>
+        <div><label>Desde N°</label><input id="f_desde" type="number" value="0"></div>
+        <div><label>Hasta N°</label><input id="f_hasta" type="number" value="99"></div>
         <div><label>Precio por número (opcional)</label><input id="f_precio" type="number" placeholder="0"></div>
       </div>
       <div style="margin-top:16px"><button class="btn" id="crearBtn">Crear rifa</button></div>
@@ -184,7 +184,7 @@ function renderHome(){
       const vend=r.vendidos?Object.keys(r.vendidos).length:0;
       html+=`<div class="rifa-item">
         <div class="name">${esc(r.nombre)}</div>
-        <div class="meta">N° ${r.desde} al ${r.hasta} · ${r.precio?money(r.precio)+' c/u':'sin precio'}</div>
+        <div class="meta">N° ${padTo(r.desde,r.hasta)} al ${r.hasta} · ${r.precio?money(r.precio)+' c/u':'sin precio'}</div>
         <div><span class="pill">${vend}/${total} vendidos</span></div>
         <button class="btn sm" onclick="location.hash='rifa=${d.id}'">Abrir →</button>
       </div>`;
@@ -223,12 +223,12 @@ function renderRifa(id){
 function paintRifa(){
   const r=curData; const total=r.hasta-r.desde+1;
   let cells='';
-  for(let n=r.desde;n<=r.hasta;n++) cells+=`<button class="cell" data-n="${n}">${n}</button>`;
+  for(let n=r.desde;n<=r.hasta;n++) cells+=`<button class="cell" data-n="${n}">${padTo(n,r.hasta)}</button>`;
   root.innerHTML=`
     <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:160px">
         <div style="font-size:20px;font-weight:800" id="r_nombre">${esc(r.nombre)}</div>
-        <div class="muted">N° ${r.desde} al ${r.hasta}${r.precio?' · '+money(r.precio)+' c/u':''}</div>
+        <div class="muted">N° ${padTo(r.desde,r.hasta)} al ${r.hasta}${r.precio?' · '+money(r.precio)+' c/u':''}</div>
       </div>
       <button class="btn ghost sm" id="shareBtn">🔗 Compartir</button>
       <button class="btn danger sm" id="delBtn">Eliminar</button>
@@ -255,8 +255,8 @@ function refreshRifa(){
   document.querySelectorAll('#grid .cell').forEach(c=>{
     const n=c.dataset.n; const sold=v[n];
     if(sold){ c.classList.add('sold');
-      c.innerHTML=`${n}${sold.comprador?`<span class="buyer">${esc(sold.comprador)}</span>`:''}`; }
-    else { c.classList.remove('sold'); c.textContent=n; }
+      c.innerHTML=`${padTo(n,r.hasta)}${sold.comprador?`<span class="buyer">${esc(sold.comprador)}</span>`:''}`; }
+    else { c.classList.remove('sold'); c.textContent=padTo(n,r.hasta); }
   });
 }
 
@@ -266,7 +266,7 @@ function onCell(n){
 }
 
 function venderModal(n){
-  modal.innerHTML=`<h3>Vender N° ${n}</h3>
+  modal.innerHTML=`<h3>Vender N° ${padTo(n,curData.hasta)}</h3>
     <p>Anotá el comprador (opcional).</p>
     <label>Comprador</label>
     <input id="m_comprador" placeholder="Nombre (opcional)">
@@ -287,7 +287,7 @@ function venderModal(n){
 }
 
 function liberarModal(n,sold){
-  modal.innerHTML=`<h3>N° ${n} vendido</h3>
+  modal.innerHTML=`<h3>N° ${padTo(n,curData.hasta)} vendido</h3>
     <p>${sold.comprador?'Comprador: <b>'+esc(sold.comprador)+'</b>':'Sin comprador anotado.'}</p>
     <div class="acts">
       <button class="btn ghost" id="m_cancel">Cerrar</button>
@@ -327,23 +327,7 @@ function renderSetup(){
   homeBtn.style.display='none';
   root.innerHTML=`<div class="card setup">
     <h2>Falta conectar Firebase</h2>
-    <p class="muted">Hacé esto una sola vez. Tarda ~5 minutos.</p>
-    <ol>
-      <li>Entrá a <code>console.firebase.google.com</code> y creá un proyecto (gratis, sin tarjeta).</li>
-      <li>En <b>Build → Firestore Database</b>, creá la base.</li>
-      <li>En <b>Configuración del proyecto → Tus apps</b>, agregá una app <b>Web</b> y copiá el objeto <code>firebaseConfig</code>.</li>
-      <li>Pegalo en este archivo, reemplazando el bloque <code>PEGAR_ACA</code>.</li>
-      <li>En <b>Firestore → Reglas</b>, pegá esto y publicá:</li>
-    </ol>
-    <pre>rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /rifas/{id} {
-      allow read, write: if true;
-    }
-  }
-}</pre>
-    <div class="note">Estas reglas dejan la rifa abierta a cualquiera con el link (lo que necesitás para que todos tachen). No guardes datos sensibles.</div>
+    <p class="muted">Pegá tu configuración de Firebase arriba en el archivo.</p>
   </div>`;
 }
 
